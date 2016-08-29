@@ -210,7 +210,8 @@ def down_video(links,lecture):
 ###############################################################################
 if __name__ == "__main__":
 
-#    args    = get_arguments()
-#    lecture = args.lecture
-    links= parse_web('4')
-    down_video(links,'4')
+    args    = get_arguments()
+    lecture = args.lecture
+    print (lecture)
+    links= parse_web(lecture)
+    down_video(links,lecture)
