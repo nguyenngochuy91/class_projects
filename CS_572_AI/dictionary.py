@@ -20,8 +20,9 @@ def parse_text(myfile):
 class Dictionary(object):
     frequent_letter = ['a', 'e', 'i', 'o','u' ]
     alphabet_letter = set('qwertyuiopasdfghjklzxcvbnm')
-    def __init__(self,myfile):
-        self.out_list = parse_text(myfile) # variable that store 
+    def __init__(self,infile):
+        self.out_list = parse_text(infile)
+    # variable that store 
     '''
         function : utility function that reduce time to go thorugh outfile
                   the idea is that to return a letter_freq dictionary (key: letter, value: freq), 
