@@ -18,25 +18,22 @@ def parse_text(myfile):
     return data
     
 class Dictionary(object):
-    frequent_letter = ['a', 'e', 'i', 'o','u' ]
-    alphabet_letter = set('qwertyuiopasdfghjklzxcvbnm')
     def __init__(self,data):
         self.data = data
+        self.alphabet_letter = set('qwertyuiopasdfghjklzxcvbnm')
     # variable that store 
     '''
         function : utility function that reduce time to go thorugh outfile
-                  the idea is that to return a letter_freq dictionary (key: letter, value: freq), 
+                  the idea is that to return 
                   a length_freq dic (key: length of a word, value: freq of the length),
                   a length_word dic (key: length of a word, value: words of that length)
         input    : none
-        output   : dic (wordFreq_from_letterFreq),dic (length_count), dic(length_to_word)
+        output   : dic (length_count), dic(length_to_word)
     '''   
     def utility_function(self):
         length_count ={} # ex: {5:12,7:108}
         length_to_word ={} # {5:['table','spong'],1:['a','b']}
         
-        wordFreq_from_letterFreq = {} #{'able': .3451, 'table':1.234}
-        letter_count = {}
         count = 0  # serve as the number of element in data
         total_letter = 0 # keep track of how many letter total
         # first pass through data, update count, and total letter,
@@ -56,19 +53,7 @@ class Dictionary(object):
             else:
                 length_to_word[length] =[word]
             
-            # update the letter_count
-            for letter in word:
-                if letter in letter_count:
-                    letter_count[letter] +=1
-                else:
-                    letter_count[letter] =1
-        # another pass through letter count to update wordFreq_from_letterFreq using total_letter
-        for word in self.data:
-            freq = 0
-            for letter in word:
-                freq += letter_count[letter]/total_letter
-            wordFreq_from_letterFreq[word] = freq
-        return wordFreq_from_letterFreq, length_count, length_to_word
+        return length_count, length_to_word
         
     '''
         function : given the word list, for each alphabet letter, provide the possibility
@@ -89,6 +74,45 @@ class Dictionary(object):
         for letter in letter_count:
             letter_probability[letter] = letter_count[letter]/size
         return letter_probability
-                    
-            
-
+              
+    '''
+        function : given the the length of word  and dictionary length_to_word,
+                    return the dictionary that keep track of frequency of each word
+                    * this version uses naive frequency letter to calculate frequency of the word
+        input    : self (basically get the list of word in the data as input)
+        output   : dic (word_to_frequency,key: word, value : probability)
+    ''' 
+    def word_to_frequency(self):
+        count = 0
+        total_letter_count = 0
+        letter_count = {}
+        word_to_frequency ={}
+        for word in self.data:
+            count +=1 
+            for letter in word:
+                total_letter_count +=1
+                if letter in letter_count:
+                    letter_count[letter] +=1
+                else:
+                    letter_count[letter] =1
+        for word in self.data:
+            freq = 0
+            for letter in word:
+                freq += letter_count[letter]/total_letter_count
+            word_to_frequency[word] = freq
+        return word_to_frequency,count
+        
+    ############################################################################
+    # helper functions 
+        
+    # functions that given word_to_frequency, return list of word with low frequency
+    # take the 25% lowest
+    def lowest_freq_words(self,word_to_frequency,count):
+        min_freq = []
+        limit = 0
+        for word in sorted(word_to_frequency,key =word_to_frequency.get,reverse=True):
+            if limit >= count/4:
+                break
+            count +=1
+            min_freq.append(word)
+        return min_freq
