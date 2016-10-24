@@ -27,7 +27,8 @@ class HangMan(object):
     # play the game function (main function)
     def play(self):
         # pull the data
-        wordFreq_from_letterFreq, length_count, length_to_word = self.data.utility_function()
+        length_count, length_to_word = self.data.utility_function()
+
         # Initialize the game
         self.initialize(length_count,length_to_word)
         #  initiate a solver
@@ -59,11 +60,11 @@ class HangMan(object):
         else:
             ## create an AI to get a word of length based on level.
             level = str(input("Please choose a level (easy,medium,hard): "))
-            # create an instant of AI_computer
+            # create an instant of AI_computer based on level
             computer = AI.AI_Computer(level,dictionary.Dictionary(length_to_word[self.word_length]) )
             # choose a word using the level
-            word = computer.choose_word()
-            print ("word:",word)
+            word = computer.choose_word().lower()
+            # print ("word:",word)
         self.word = word # initial our word
         self.solver.dic = dictionary.Dictionary(length_to_word[self.word_length]) #  object initial our solver data as a dictionary
         
@@ -78,9 +79,10 @@ class HangMan(object):
     '''  
     def play_a_turn(self):
         print (Fore.RED +"The letters you have guessed: "+str(self.guessed_letters)+Style.RESET_ALL)
+        print ("alphabet_letter: ",self.data.alphabet_letter)
         # get the letter input from user
         letter = str(input("Please chose an alphabet letter: "))
-        while letter in self.guessed_letters or letter not in self.data.alphabet_letter:
+        while letter not in self.data.alphabet_letter or letter in self.guessed_letters:
             letter = str(input("Please provide a proper alphabet letter: "))
         # add the letter to guessed_letters
         self.guessed_letters.add(letter)
@@ -149,19 +151,19 @@ class HangMan(object):
  
                     
 def main():
-    dictionary_word = str(input("which dictionary you want to use ('words.txt','words1.txt','words2.txt'): "))
+    dictionary_word = str(input("which dictionary you want to use ('words.txt','words2.txt','words3.txt'): "))
     chances = int(input("Please indicate how many chances player can have: "))
     word_length = int(input("Please indicate what length to choose: "))
     mutiplayer = str(input("Do you want to play with a human(y,n): "))
     # create a Hangman object
-    game = HangMan(chances,word_length, dictionary.Dictionary(dictionary.parse_text(dictionary_word))
-    ,mutiplayer)
+    diction = dictionary.Dictionary(dictionary.parse_text(dictionary_word))
+    game = HangMan(chances,word_length, diction,mutiplayer)
     game.play()
     string = str(input("Do you want to play again? (y:yes, n : no) "))
     while string.lower() == 'y':
         chances = int(input("Please indicate how many chances player can have: "))
         word_length = int(input("Please indicate what length to choose: "))
-        game = HangMan(chances,word_length,'words.txt',mutiplayer)
+        game = HangMan(chances,word_length,diction,mutiplayer)
         game.play()    
         string = str(input("Do you want to play again? (y:yes, n : no) "))
     
