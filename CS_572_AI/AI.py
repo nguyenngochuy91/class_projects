@@ -17,8 +17,17 @@ class AI_Computer(object):
     def choose_word(self):
         # for random, it will return 1 word
         if self.level == 'easy':
-            return random.choice(self.dic.data)
-
+            word=  random.choice(self.dic.data)
+            print ("level:",self.level)
+        elif self.level == 'medium':
+            # use the wordFreq_from_letterFreq and length_to_word to retrieve the lowest frequency
+            word_to_frequency,count = self.dic.word_to_frequency()
+            words                   = self.dic.lowest_freq_words(word_to_frequency,count)
+            word=  random.choice(words)
+            print ("level:",self.level)
+        else: # means hard level
+            word= None
+        return word
 class AI_solver(object):
     def __init__(self,dic = None,wrong_guess= set()):
         self.dic = dic # pass the dic list of the dictionary of such length count
@@ -47,7 +56,6 @@ class AI_solver(object):
             
         # from the dic, calling method in the dictionary class to calculate 
         letter_probability = self.dic.alphabet_letter_freq()
-        
         return letter_probability
     ############################################################################
     # helper functions 
