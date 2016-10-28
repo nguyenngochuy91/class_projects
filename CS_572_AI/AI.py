@@ -11,8 +11,7 @@ class AI_Computer(object):
     def __init__(self,level = 'easy',dic=None):
         self.level = level # get the level
         self.dic = dic # pass the dic list of the dictionary of such length count
-        self.set_levels = ["easy","medium","hard"]
-        
+        self.index_list =[]
     # given the level, choose a word in the dictionary based on the level.
     def choose_word(self):
         # for random, it will return 1 word
@@ -25,9 +24,46 @@ class AI_Computer(object):
             words                   = self.dic.lowest_freq_words(word_to_frequency,count)
             word=  random.choice(words)
             print ("level:",self.level)
-        else: # means hard level
-            word= None
-        return word
+        elif self.level == 'hard' or self.level == "insane":
+            word = self.dic.data
+        return word # could be a word, or list of word
+    
+    '''
+        function : given a guessed letter, this will filter the word list (only 
+                   get invoked if the level is hard).
+                   In this method, naively try to remove as much letter the user
+                   guess as possible (greedy)
+                   If it returns a single word, then switch is yes
+        input    : guessed letter, and utilize the current self.dic.data
+        output   : list (updated self.dic.data), list( of index), switch (boolean)
+    '''
+    def naive_filter(self,letter):
+        selectors = (letter not in word for word in self.dic.data) # our selectors won't have letter     
+        count = 0
+        for i,word in enumerate(compress(self.dic.data,selectors)): # enumerate elemenets does not have letter:
+            count +=1
+            self.dic.data[i] = word # move found element to the beginning of the list, without resizing
+        print (self.dic.data)
+        if count == 0: # this means that either all of them has such letter 
+            word = random.choice(self.dic.data)
+            self.find_all(word,letter)
+            return word,self.index_list, True
+        elif count == 1:
+            return self.dic.data[0],self.index_list, True # return the only word with no letter occurence, and index is as 0 
+        else:
+            del self.dic.data[i+1:] # remove those that have the letter
+            return self.dic.data, self.index_list, False
+            
+    ###########################################################################
+    # helper functions
+    # given a letter and word, find all the index 
+    def find_all(self,word,letter):
+        self.index_list =[]
+        for index in range(len(word)):
+            if word[index] == letter:
+                self.index_list.append(index)
+        
+        
 class AI_solver(object):
     def __init__(self,dic = None,wrong_guess= set()):
         self.dic = dic # pass the dic list of the dictionary of such length count
