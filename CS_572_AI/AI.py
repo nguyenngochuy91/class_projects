@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 ''' Author  : Huy Nguyen
     Program : AI class strategy to give word , and an AI solver for the game
+                and a class
     Start   : 09/28/2016
     End     : /2016
 '''
@@ -24,7 +25,7 @@ class AI_Computer(object):
             words                   = self.dic.lowest_freq_words(word_to_frequency,count)
             word=  random.choice(words)
             print ("level:",self.level)
-        elif self.level == 'hard' or self.level == "insane":
+        elif self.level == 'hard' or self.level == "insane" or self.level =="intermediate":
             word = self.dic.data
         return word # could be a word, or list of word
     
@@ -43,25 +44,80 @@ class AI_Computer(object):
         for i,word in enumerate(compress(self.dic.data,selectors)): # enumerate elemenets does not have letter:
             count +=1
             self.dic.data[i] = word # move found element to the beginning of the list, without resizing
-        print (self.dic.data)
+        # print (self.dic.data)
         if count == 0: # this means that either all of them has such letter 
             word = random.choice(self.dic.data)
-            self.find_all(word,letter)
+            self.index_list = self.find_all(word,letter)
             return word,self.index_list, True
         elif count == 1:
+            self.index_list = self.find_all(self.dic.data[0],letter)
             return self.dic.data[0],self.index_list, True # return the only word with no letter occurence, and index is as 0 
         else:
             del self.dic.data[i+1:] # remove those that have the letter
             return self.dic.data, self.index_list, False
             
+    '''
+        function : given a guessed letter, this will categorize the list of words into classes.
+                   Then, it will use the class with most number of words. and list of index
+                   such letter appear
+        input    : guessed letter, and utilize the current self.dic.data
+        output   : list (updated self.dic.data), list( of index), switch (boolean)
+    '''
+    def class_size_filter(self,letter):
+        # partition
+        max_words, index_list,self.dic.data = self.partition(letter) 
+        # convert the index string into normal index 
+        self.index_list = []
+        for index in index_list:
+            self.index_list.append(int(index))
+        if max_words == 1: # there is only 1 word left
+            return self.dic.data, self.index_list, True
+        else:
+            return self.dic.data, self.index_list, False 
+                    
     ###########################################################################
     # helper functions
     # given a letter and word, find all the index 
     def find_all(self,word,letter):
-        self.index_list =[]
+        index_list =[]
         for index in range(len(word)):
             if word[index] == letter:
-                self.index_list.append(index)
+                index_list.append(index)
+        return index_list
+        
+    # given a letter and word, find all the index , return as a string
+    def find_all_as_string(self,word,letter):
+        index_list =""
+        for index in range(len(word)):
+            if word[index] == letter:
+                index_list+= str(index)
+        return index_list
+    
+    # given a guessed letter, partition our data into different categories
+    # return a max_words, index list, and the word list
+    def partition(self,letter):
+        dic = {} # key is the index list that the letter appear in word, value is the list of word
+        max_words = 0 # keep track which one has maximum number of words
+        most_words_at_index = None
+        index_list = None
+        for word in self.dic.data:
+            # get all the index of letter appear in word
+            temp_index = self.find_all_as_string(word,letter)
+            if temp_index in dic: # if such index list is in dic already
+                # adding the word using category add word function
+                dic[temp_index].add_word(word)
+            # if not in dic, then initiate the category object
+            else:
+                dic[temp_index] = category([word],1)
+        
+        # get the one with max
+        for index in dic:
+            if max_words < dic[index].count:
+                max_words = dic[index].count
+                index_list = index # assign the index_list
+                most_words_at_index = dic[index].word_list
+        return max_words,index_list,most_words_at_index
+        
         
         
 class AI_solver(object):
@@ -89,7 +145,7 @@ class AI_solver(object):
             self.remove_word_not_comply(index_list,letter)
             # also remove the letter from our alphabet, since it appears always so the count is 1
             self.dic.alphabet_letter.remove(letter)
-            
+        # print (self.dic.data)
         # from the dic, calling method in the dictionary class to calculate 
         letter_probability = self.dic.alphabet_letter_freq()
         return letter_probability
@@ -109,7 +165,6 @@ class AI_solver(object):
     # remove word in dic that contains letter from input in O(n)
     def remove_word_with_letter(self,letter):
         selectors = (letter not in word for word in self.dic.data) # our selectors won't have letter
-        
         for i,word in enumerate(compress(self.dic.data,selectors)): # enumerate elemenets does not have letter:
             self.dic.data[i] = word # move found element to the beginning of the list, without resizing
         del self.dic.data[i+1:] # trim the end of the list
@@ -128,3 +183,21 @@ class AI_solver(object):
         for i,word in enumerate(compress(self.dic.data,selectors=selectors)): # enumerate elemenets does not have letter:
             self.dic.data[i] = word # move found element to the beginning of the list, without resizing
         del self.dic.data[i+1:] # trim the end of the list
+        
+###############################################################################
+## helper classes
+class category(object):
+    def __init__(self,word_list,count):
+        self.word_list = word_list
+        self.count     = count 
+        
+    def add_word(self,word):
+        self.word_list.append(word)
+        self.count +=1
+        
+    def get_count(self):
+        return self.count
+        
+    def get_word_list(self):
+        return self.word_list
+    
