@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 ''' Author  : Huy Nguyen
     Program : AI class strategy to give word , and an AI solver for the game
-                and a class
+                and an AI that find the best string of letter to guess given the level
+                is hard.
     Start   : 09/28/2016
     End     : /2016
 '''
 import random
 from itertools import compress # this helps to modify list in O(n), with limited memory requirement.
-
+import itertools
+import dictionary
+import copy
+###############################################################################
+## AI computer to choose word (level)
+###############################################################################
 class AI_Computer(object):
     def __init__(self,level = 'easy',dic=None):
         self.level = level # get the level
@@ -118,7 +124,9 @@ class AI_Computer(object):
                 most_words_at_index = dic[index].word_list
         return max_words,index_list,most_words_at_index
         
-        
+###############################################################################        
+## AI solver given the data find the most probable letter  
+###############################################################################
         
 class AI_solver(object):
     def __init__(self,dic = None,wrong_guess= set()):
@@ -185,6 +193,73 @@ class AI_solver(object):
         del self.dic.data[i+1:] # trim the end of the list
         
 ###############################################################################
+## AI class that given the hard level strategy, find the most probable
+## series of letter to guess
+###############################################################################
+        
+class AI_hard_solver(object):
+    def __init__(self,dic = None,wrong_guess= ''):
+        self.dic = dic # pass the dic list of the dictionary of such length count
+                        # this list will get truncated after each of our guess
+        self.wrong_guess = wrong_guess # set of letter that is not in the word
+        self.number_of_try = 0 # use this to study how many time our solve fails a guess
+        self.alphabet = set('qwertyuiopasdfghjklzxcvbnm')
+        self.index_list = None
+        self.guess_string = ''
+    '''
+        function : Given then data bag of word, utilize the hard level strategy,
+                    find the shortest sequence of letter to guess
+        input    : None
+        output   : string (letters)
+    '''
+    def solve(self):
+        AI   = AI_Computer('hard',self.dic)
+        finish = False
+        solver = AI_solver()
+        solver.dic = self.dic
+        letter_probability = self.dic.alphabet_letter_freq()
+        ## getting a guidline number using the AI normal solver 
+        while not finish:
+            for item in sorted(letter_probability,key = letter_probability.get,reverse=True):
+                letter = item
+                break
+            self.alphabet.remove(letter)
+            self.number_of_try += 1 # increment the total number of trial
+            self.dic.data, self.index_list, finish  = AI.class_size_filter(letter)
+            if len(self.index_list) == 0: # wrong guess
+                self.wrong_guess +=letter
+            self.guess_string += letter
+            letter_probability = solver.solve(self.index_list,letter)
+        min_wrong_guess = self.wrong_guess
+        min_guess_string = self.guess_string
+        length_wrong_guess = len(self.wrong_guess)
+        
+    '''
+        function : Given then data bag of word, utilize the hard level strategy,
+                    find the shortest sequence of letter to guess
+        input    : None
+        output   : string (letters)
+    '''
+    def test(self):
+        finish = False
+        ## getting a guidline number using the AI normal solver 
+        result ={}
+        for i in range(1,4):
+            current = list(itertools.permutations(self.alphabet,i))
+            local_max= 0
+            local_data = None
+            sequence = None
+            for permutation in current:
+                AI   = AI_Computer('hard',copy.deepcopy(self.dic))
+                for letter in permutation:
+                    data, index_list, finish = AI.class_size_filter(letter)
+                # print (permutation,data)
+                if local_max < 1/len(data):
+                    local_data = data
+                    sequence = permutation
+            result[sequence] = len(local_data)
+        return result
+###############################################################################
 ## helper classes
 class category(object):
     def __init__(self,word_list,count):
@@ -200,4 +275,24 @@ class category(object):
         
     def get_word_list(self):
         return self.word_list
-    
+
+class guessed_letter(object):
+    def __init__(self,alphabet,count):
+        self.alphabet = alphabet
+        self.count     = count 
+        
+###############################################################################
+# testing AI_hard_solver
+diction = dictionary.Dictionary(dictionary.parse_text('words.txt'))
+length_count, length_to_word = diction.utility_function()
+## using 1st strategy
+#solver = AI_hard_solver()
+#solver.dic = dictionary.Dictionary(length_to_word[5])
+#solver.solve()
+#shortest = solver.wrong_guess
+#gues_string = solver.guess_string
+#word =  solver.dic.data
+## using2nd strategy
+solver = AI_hard_solver()
+solver.dic = dictionary.Dictionary(length_to_word[5])
+result = solver.test()
