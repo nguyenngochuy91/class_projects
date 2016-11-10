@@ -11,6 +11,7 @@ from itertools import compress # this helps to modify list in O(n), with limited
 import itertools
 import dictionary
 import copy
+import time
 ###############################################################################
 ## AI computer to choose word (level)
 ###############################################################################
@@ -243,22 +244,34 @@ class AI_hard_solver(object):
     def test(self):
         finish = False
         ## getting a guidline number using the AI normal solver 
-        result ={}
-        for i in range(1,4):
-            current = list(itertools.permutations(self.alphabet,i))
+        while not finish: # 
+            current = list(itertools.permutations(self.alphabet,1)) # a period look into 3 step ahead
             local_max= 0
             local_data = None
-            sequence = None
+            sequence = ()
             for permutation in current:
                 AI   = AI_Computer('hard',copy.deepcopy(self.dic))
+                # count = 0 
                 for letter in permutation:
                     data, index_list, finish = AI.class_size_filter(letter)
+                    # count +=1
+                    if finish: 
+                        sequence = permutation
+                        break
                 # print (permutation,data)
+                if finish:
+                    local_data = data
+                    break
                 if local_max < 1/len(data):
+                    local_max = 1/len(data)
                     local_data = data
                     sequence = permutation
-            result[sequence] = len(local_data)
-        return result
+            self.guess_string += sequence[0]
+            self.alphabet.remove(sequence[0])
+            self.dic.data  = local_data
+        for letter in self.guess_string:
+            if letter not in self.dic.data[0]:
+                self.wrong_guess +=letter
 ###############################################################################
 ## helper classes
 class category(object):
@@ -286,13 +299,19 @@ class guessed_letter(object):
 diction = dictionary.Dictionary(dictionary.parse_text('words.txt'))
 length_count, length_to_word = diction.utility_function()
 ## using 1st strategy
-#solver = AI_hard_solver()
-#solver.dic = dictionary.Dictionary(length_to_word[5])
-#solver.solve()
-#shortest = solver.wrong_guess
-#gues_string = solver.guess_string
-#word =  solver.dic.data
+solver = AI_hard_solver()
+solver.dic = dictionary.Dictionary(length_to_word[5])
+solver.solve()
+print(solver.wrong_guess)
+print (solver.guess_string)
+print (solver.dic.data)
 ## using2nd strategy
+start = time.time()
 solver = AI_hard_solver()
 solver.dic = dictionary.Dictionary(length_to_word[5])
 result = solver.test()
+print(solver.wrong_guess)
+print (solver.guess_string)
+print (solver.dic.data)
+stop = time.time()
+print (stop -start)
