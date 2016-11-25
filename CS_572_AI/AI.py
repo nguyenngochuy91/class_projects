@@ -213,7 +213,7 @@ class AI_hard_solver(object):
         input    : None
         output   : string (letters)
     '''
-    def solve(self):
+    def solve_method_1(self):
         AI   = AI_Computer('hard',self.dic)
         finish = False
         solver = AI_solver()
@@ -231,9 +231,9 @@ class AI_hard_solver(object):
                 self.wrong_guess +=letter
             self.guess_string += letter
             letter_probability = solver.solve(self.index_list,letter)
-        min_wrong_guess = self.wrong_guess
-        min_guess_string = self.guess_string
-        length_wrong_guess = len(self.wrong_guess)
+        for letter in self.dic.data[0]:
+            if letter not in self.guess_string:
+                self.guess_string +=letter
         
     '''
         function : Given then data bag of word, utilize the hard level strategy,
@@ -241,37 +241,45 @@ class AI_hard_solver(object):
         input    : None
         output   : string (letters)
     '''
-    def test(self):
+    def solve_method_2(self):
         finish = False
         ## getting a guidline number using the AI normal solver 
         while not finish: # 
-            current = list(itertools.permutations(self.alphabet,1)) # a period look into 3 step ahead
+            current = list(itertools.permutations(self.alphabet,2)) # a period look into 3 step ahead
             local_max= 0
             local_data = None
             sequence = ()
+            min_count = 3
             for permutation in current:
                 AI   = AI_Computer('hard',copy.deepcopy(self.dic))
-                # count = 0 
+                count = 0 
                 for letter in permutation:
                     data, index_list, finish = AI.class_size_filter(letter)
-                    # count +=1
+                    count +=1
                     if finish: 
                         sequence = permutation
                         break
-                # print (permutation,data)
-                if finish:
+                # print (permutation)
+                if finish and count ==1:
                     local_data = data
                     break
-                if local_max < 1/len(data):
+                if local_max < 1/len(data) and count < min_count:
                     local_max = 1/len(data)
                     local_data = data
                     sequence = permutation
-            self.guess_string += sequence[0]
-            self.alphabet.remove(sequence[0])
+
+            # print ("alphabet", self.alphabet)
+            # print ("sequence",sequence)
+            for item in sequence:
+                self.alphabet.remove(item)
+                self.guess_string += item
             self.dic.data  = local_data
         for letter in self.guess_string:
             if letter not in self.dic.data[0]:
                 self.wrong_guess +=letter
+        for letter in self.dic.data[0]:
+            if letter not in self.guess_string:
+                self.guess_string +=letter
 ###############################################################################
 ## helper classes
 class category(object):
@@ -295,23 +303,23 @@ class guessed_letter(object):
         self.count     = count 
         
 ###############################################################################
-# testing AI_hard_solver
-diction = dictionary.Dictionary(dictionary.parse_text('words.txt'))
-length_count, length_to_word = diction.utility_function()
-## using 1st strategy
-solver = AI_hard_solver()
-solver.dic = dictionary.Dictionary(length_to_word[5])
-solver.solve()
-print(solver.wrong_guess)
-print (solver.guess_string)
-print (solver.dic.data)
+## testing AI_hard_solver
+#diction = dictionary.Dictionary(dictionary.parse_text('words.txt'))
+#length_count, length_to_word = diction.utility_function()
+### using 1st strategy
+#solver = AI_hard_solver()
+#solver.dic = dictionary.Dictionary(length_to_word[6])
+#solver.solve_method_1()
+#print(solver.wrong_guess)
+#print (solver.guess_string)
+#print (solver.dic.data)
 ## using2nd strategy
-start = time.time()
-solver = AI_hard_solver()
-solver.dic = dictionary.Dictionary(length_to_word[5])
-result = solver.test()
-print(solver.wrong_guess)
-print (solver.guess_string)
-print (solver.dic.data)
-stop = time.time()
-print (stop -start)
+#start = time.time()
+#solver = AI_hard_solver()
+#solver.dic = dictionary.Dictionary(length_to_word[6])
+#solver.solve_method_2()
+#print(solver.wrong_guess)
+#print (solver.guess_string)
+#print (solver.dic.data)
+#stop = time.time()
+#print (stop -start)
