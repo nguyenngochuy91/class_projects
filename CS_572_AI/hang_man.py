@@ -24,12 +24,13 @@ class HangMan(object):
         self.data            = data # pass dictionary object
         self.success         = False # initiate the game as False
         self.multiplayer     = multiplayer # indicate that we play human vs human
-        self.solver          = AI.AI_solver() # initiate a solver
+        self.solver          = None # initiate a solver
+        self.suggestion      = None # inititate None as suggestion
         
         self.computer        = None # initiate the AI computer to choose ward
         
         self.level           = None # initiate the level of the game as nothing
-        self.set_levels      = ["easy","intermediate","medium","hard","insane"]
+        self.set_levels      = ["easy","intermediate","medium","hard"]
         self.switch          = False # switch level back to easy, medium when the bag only contain 1 word
     # play the game function (main function)
     def play(self):
@@ -47,17 +48,16 @@ class HangMan(object):
                 self.play_a_turn_words_intermediate() # play a turn
                 if self.switch:
                     self.word = self.word[0]
+                    # print (self.word)
                     while not self.is_end_game():
                         self.play_a_turn_word() # play a turn
                     break # only contain 1 word, switch back, might need lots of test 
         elif self.level == "hard":
+            self.solver.solve_method_1()
+            self.suggestion = self.solver.guess_string
             while not self.is_end_game():
                 self.play_a_turn_words_hard() # play a turn
-                if self.switch:
-                    self.word = self.word[0]
-                    while not self.is_end_game():
-                        self.play_a_turn_word() # play a turn
-                    break # only contain 1 word, switch back, might need lots of test 
+                
     ''' 
         function : from dictionary of length word to word, ask user for which word
                 to choose, then initialize the game with the word and the state
@@ -83,15 +83,19 @@ class HangMan(object):
                 word = str(input("Invalid choice. Please choose a word of length "+str(self.word_length)+":" ))
         else:
             ## create an AI to get a word of length based on level.
-            self.level = str(input("Please choose a level (easy,intermediate,medium,hard,insane): "))
+            self.level = str(input("Please choose a level (easy,intermediate,medium,hard): "))
             while self.level not in self.set_levels:
-                self.level = str(input("Please choose a proper level (easy,intermediate,medium,hard,insane): "))
+                self.level = str(input("Please choose a proper level (easy,intermediate,medium,hard): "))
             # create an instant of AI_computer based on level
             self.computer = AI.AI_Computer(self.level,dictionary.Dictionary(length_to_word[self.word_length]) )
             # choose a word using the level
             word = self.computer.choose_word()
             # print ("word:",word)
         self.word = word # initial our word, it could be a bag of word from hard/ insane level
+        if self.level != "hard":
+            self.solver = AI.AI_solver()
+        else:
+            self.solver = AI.AI_hard_solver()
         self.solver.dic = dictionary.Dictionary(length_to_word[self.word_length]) #  object initial our solver data as a dictionary
         
         
@@ -107,7 +111,7 @@ class HangMan(object):
         
         letter = self.take_guess() # get the letter from the user
         self.find_all(letter)  # find all the index of letter in word  
-        print ("word",self.word)
+        # print ("word",self.word)
         print (self.index_list)
         self.check_guess(letter) # check if the guess is right or wrong and update the game state
         
@@ -149,21 +153,12 @@ class HangMan(object):
         output   : None (update current game state or current chances, current guessed letters)
     '''  
     def play_a_turn_words_hard(self):
-        
+        print ("This is the suggestion string of letter to guess, please follow in order:")
+        print (self.suggestion)
         letter = self.take_guess() # get the letter from the user
         self.word, self.index_list,self.switch =  self.computer.class_size_filter(letter)
         self.check_guess(letter)
         
-        
-        # using the updated index_list, and the letter, our AI class method solve
-        # will reason whether if the letter is a wrong guess or not and provide
-        # next suggestions
-#        print (self.index_list)
-#        print (self.switch)
-        suggestions = self.solver.solve(self.index_list,letter)
-        # print those suggestions
-        print ("Here are the top 5 most probable letters: ")
-        self.solver.print_top_5(suggestions) 
         
     ############################################################################
     # helper functions
@@ -225,7 +220,10 @@ class HangMan(object):
             if self.chances ==0:
                 print ("Oops, you have lost")
                 self.print_state() # print state
-                print ("Here is the word: " + random.choice(self.word))
+                if self.switch:
+                    print ("Here is the word: " + self.word)
+                else: 
+                    print ("Here is the word: " + random.choice(self.word))
                 return True
             else:
                 return False
