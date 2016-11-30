@@ -1,20 +1,60 @@
 #!/usr/bin/env python
 ''' Author  : Huy Nguyen
-    Program : using info from the blast, retrieve the coordination of the sequence
-                of nucleotide that best matches the gene
+    Program : providing 2 method to study operon functionality
+            1) Method 1: predict structure for each genes in each operon
+                         do a docking for the genes structure in an operon
+                         utilize structure alignment to predict functionality
+            2) Method 2: Blast each gene against pdb file, then combine the 
+                        sequence to blase gainst pdb database
 '''
+
+
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import PDBIO
+from Bio.PDB.PDBIO import Select
+from Bio import SeqIO
 import os
 pdb_dir = 'pdb/'
 operon_dir = 'operon/'
+###############################################################################
+## helper functions
+###############################################################################
+'''
+    function: parsing the gene_block_names_and_genes.txt, create a dic
+                with key as the operon and value is its gene
+    input: gene_block_names_and_genes.txt
+    output: dic (key: operon name, value: genes)
+'''
+def get_operon_genes(myfile):
+    infile = open(myfile,'r')
+    dic ={}
+    for line in infile.readlines():
+        line = line.strip()
+        line = line.split('\t')
+        dic[line[0]]=line[1:]
+    return dic
 
+operon = get_operon_genes('gene_block_names_and_genes.txt')
 
+'''
+    function: parsing the gene_block_query and retrieve the translation of each gene into a dic
+    input: gene_block_query.fa
+    output: dic (key: gene, value: translation)
+'''
+def get_translation(myfile):
+    dic = {}
+    for seq_record in SeqIO.parse(myfile, "fasta"):
+        dic[(seq_record.id).split('|')[3]] = seq_record.seq
+    return dic
+
+###############################################################################
+## Method 1
+###############################################################################
 '''
     function: take in a blast file, file the best matching between a gene and 
                 an available pdb file
     input: blast file
-    output: dic (key: gene name, value: tuple (pdb file name, start ,stop,length))
+    output: dic (key: gene name, value: tuple (pdb file name, start of the pdb file ,stop of the pdb file,length))
 '''
 def get_best_match_gene_pdb(blast):
     infile = open(blast,'r')
@@ -24,8 +64,8 @@ def get_best_match_gene_pdb(blast):
         line = line.split('\t')
         pdb_info = line[0].split('|')[0]
         gene_info = line[1].split('|')[3]
-        start = int(line[7])
-        stop = int(line[9])
+        start = int(line[6])
+        stop = int(line[7])
         length = abs(stop-start)
         if gene_info not in dic:
             if length >=10:
@@ -78,21 +118,6 @@ def get_coordinate(dic):
 
 # new_dic = get_coordinate(dic)   
 
-
-'''
-    function: parsing the gene_block_names_and_genes.txt, create a dic
-                with key as the operon and value is its gene
-    input: gene_block_names_and_genes.txt
-    output: dic (key: operon name, value: genes)
-'''
-def get_operon_genes(myfile):
-    infile = open(myfile,'r')
-    dic ={}
-    for line in infile.readlines():
-        line = line.strip()
-        line = line.split('\t')
-        dic[line[0]]=line[1:]
-    return dic
     
 
 '''
@@ -153,5 +178,90 @@ def write_specific_residue(blast,operon,operon_list):
 
 #blast = get_best_match_gene_pdb('output_reverse')  
 #coordinates = get_coordinate(blast)   
-#operon = get_operon_genes('gene_block_names_and_genes.txt')
+
 #operon_list = get_all_map(operon,coordinates)
+#write_specific_residue(blast,operon,operon_list)
+
+###############################################################################
+## Method 2
+###############################################################################
+'''
+    function: take in a blast file, file the bag of protein structure that
+                each gene has good hit
+    input: blast file
+    output: dic (key: gene name, value: tuple ((pdb file name, start  ,stop,length)), dic (key:gene name, value: set {pdb file names})
+'''
+def get_matches_gene_pdb(blast):
+    dic = {}
+    gene_pdb_bags ={}
+    infile = open(blast,'r')
+    for line in infile.readlines():
+        line = line.split('\t')
+        pdb_info = line[0].split('|')[0]
+        gene_info = line[1].split('|')[3]
+        start = int(line[8])
+        stop = int(line[9])
+        length = abs(stop-start)
+        if gene_info not in dic:
+            dic[gene_info] = set()
+        if length >=10:
+            if start < stop:
+                dic[gene_info].add((pdb_info,start,stop,length))
+            else:
+                dic[gene_info].add((pdb_info,stop,start,length))
+        if gene_info not in gene_pdb_bags:
+            gene_pdb_bags[gene_info]=set()
+        gene_pdb_bags[gene_info].add(pdb_info)
+
+    return dic,gene_pdb_bags
+
+blast,gene_pdb_bags = get_matches_gene_pdb('output_reverse')
+
+###############################################################################
+## sub method to check if there is a structure that combine all the genes
+
+'''
+    function: given the gene_pdb_bags, using the info from operon and operon list
+              check if there is an intersection of protein file for all the genes 
+              within an operon
+    input: dic (key:gene name, value: set {pdb file names}), list (operon names), dic (key:operon, value: genes)
+    output: dic (key: operon, value: list of intersected pdb file)
+'''
+def get_intersection_bags(gene_pdb_bags,operon, operon_list):
+    dic ={}
+    for operon_name in operon_list:
+        intersection = gene_pdb_bags[operon[operon_name][0]] # get the bags of structure of the first gene in the operon
+        for gene in operon[operon_name][1:]:
+            intersection = intersection & gene_pdb_bags[gene]
+        if len(intersection)!=0 :
+            dic[operon_name] = intersection
+    return dic    
+###############################################################################
+    
+'''
+    function: given operon_list, create a dictionary for those operon using info from operon dic.
+                Then write this out into a fasta file
+    input: dic (key: gene name, value: tuple ((pdb file name, start  ,stop,length)), dic (operon_list), dic (operon),
+                file (fasta file)
+    output: fasta file
+'''
+
+def retrieve_sequence_to_blast(blast,operon_list,operon, fasta):
+    translation = get_translation('gene_block_query.fa')
+    outfile = open(fasta,'w')
+    for operon_name in operon_list:
+        outfile.write('>'+operon_name+'\n')
+        string = ''
+        for gene in operon[operon_name]:
+            length = 0
+            start = 0
+            stop = 0
+            for possible_structure in blast[gene]:
+                if length < possible_structure[3]: # change if find a new max length
+                    start = possible_structure[1]
+                    stop  = possible_structure[2]
+            string += str(translation[gene][start-1:stop]) # add the gene translation into string
+        string += '\n'
+        # write the whole string to outfile
+        outfile.write(string)
+    outfile.close()
