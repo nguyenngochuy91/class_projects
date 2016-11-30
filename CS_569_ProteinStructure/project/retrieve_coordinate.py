@@ -1,23 +1,15 @@
-Skip to content
-Personal Open source Business Explore
-Sign upSign inPricingBlogSupport
-This repository
-Search
- Watch 2  Star 0  Fork 0 nguyenngochuy91/class_projects
- Code  Issues 0  Pull requests 0  Projects 0  Pulse  Graphs
-Branch: master Find file Copy pathclass_projects/CS_569_ProteinStructure/retrieve_coordinate.py
-15d9512  40 seconds ago
-@nguyenngochuy91 nguyenngochuy91 Add files via upload
-1 contributor
-RawBlameHistory    
-113 lines (106 sloc)  3.84 KB
 #!/usr/bin/env python
 ''' Author  : Huy Nguyen
     Program : using info from the blast, retrieve the coordination of the sequence
                 of nucleotide that best matches the gene
 '''
 from Bio.PDB.PDBParser import PDBParser
-pdb_dic = 'pdb/'
+from Bio.PDB import PDBIO
+import os
+pdb_dir = 'pdb/'
+operon_dir = 'operon/'
+
+
 '''
     function: take in a blast file, file the best matching between a gene and 
                 an available pdb file
@@ -69,7 +61,7 @@ def get_coordinate(dic):
         # parsing pdb file
         parser = PDBParser()
         try:
-            structure = parser.get_structure(filename,pdb_dic+filename+'.pdb')
+            structure = parser.get_structure(filename,pdb_dir+filename+'.pdb')
             # get the residues from pdb file given the start, stop position and chain 
             residues =[]
             for i in range(start,stop+1):
@@ -83,7 +75,10 @@ def get_coordinate(dic):
             continue
     return new_dic
         
-# new_dic = get_coordinate(dic)    
+
+# new_dic = get_coordinate(dic)   
+
+
 '''
     function: parsing the gene_block_names_and_genes.txt, create a dic
                 with key as the operon and value is its gene
@@ -107,19 +102,56 @@ def get_operon_genes(myfile):
              inside))
     output: list (operon name that has all of its gene mapped)
 '''
-def get_all_map(operon,coordinates):
+def get_all_map(operon,blast):
     operon_list =[]
     for operon_name,genes in operon.items():
         flag = True
         for gene in genes:
-            if gene not in coordinates:
+            if gene not in blast:
                 flag= False
                 break
         if flag:
             operon_list.append(operon_name)
     return operon_list
 
-blast = get_best_match_gene_pdb('output_reverse')  
-coordinates = get_coordinate(blast)   
-operon = get_operon_genes('gene_block_names_and_genes.txt')
+'''
+    function: take in the dictionary from the previous function, find the right 
+                pdb file, write out the right residue into new pdb file
+    input: dic (key: gene name, value: tuple (pdb file name, start ,stop,length)), operon_list,operon
+    output: a directory that name as the operon, inside is the protein matching file to the genes
+'''
+def write_specific_residue(blast,operon,operon_list):
+    # iterate through the operon_list
+    for operon_name in operon_list:
+        # create dir for the operon_name
+        os.mkdir(operon_dir+operon_name)
+        for gene in operon[operon_name]:
+            # get the info from the dic 
+            pdb = blast[gene]
+            pdb_info = pdb[0].split(':')
+            start = pdb[1]
+            stop = pdb[2]
+            filename = pdb_info[0].lower()
+            chain_info = pdb_info[1]
+            # parsing pdb file
+            parser = PDBParser()
+            io = PDBIO()
+            try:
+                structure = parser.get_structure(filename,pdb_dir+filename+'.pdb')
+                chain = structure[0][chain_info]
+                io.set_structure(chain)
+                class ResiSelect(Select):
+                    def accept_residue(self, residue):
+                         if residue.get_id()[1] in range(start,stop+1):
+                             return True
+                         else:
+                             return False
+                io.save(operon_dir+operon_name+'/'+gene+'.pdb', ResiSelect()) 
+            except:
+                continue
 
+
+#blast = get_best_match_gene_pdb('output_reverse')  
+#coordinates = get_coordinate(blast)   
+#operon = get_operon_genes('gene_block_names_and_genes.txt')
+#operon_list = get_all_map(operon,coordinates)
