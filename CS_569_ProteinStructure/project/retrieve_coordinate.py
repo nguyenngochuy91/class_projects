@@ -178,7 +178,7 @@ def write_specific_residue(blast,operon,operon_list):
 
 #blast = get_best_match_gene_pdb('output_reverse')  
 #coordinates = get_coordinate(blast)   
-
+#
 #operon_list = get_all_map(operon,coordinates)
 #write_specific_residue(blast,operon,operon_list)
 
@@ -261,7 +261,11 @@ def retrieve_sequence_to_blast(blast,operon_list,operon, fasta):
                     start = possible_structure[1]
                     stop  = possible_structure[2]
             string += str(translation[gene][start-1:stop]) # add the gene translation into string
+        size = len(string)
         string += '\n'
         # write the whole string to outfile
         outfile.write(string)
+        outfile.write(str(size)+'\n')
     outfile.close()
+    
+retrieve_sequence_to_blast(blast,operon_list,operon, 'combination.fa')
