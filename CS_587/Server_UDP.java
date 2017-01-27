@@ -2,15 +2,15 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+
 class Server_UDP
 {
    public static void main(String args[]) throws Exception
    {	
-	    String port_string = args[0];
-	    int port = Integer.parseInt(port_string);
+	    int port = 8888;
         DatagramSocket socket = new DatagramSocket(port); // initiate udp socket
         Map<Integer, Status> client_IDs = new Hashtable<Integer, Status>(); // hash table with key = client ID, value is the status
-        System.out.println("Starting server with port:" + port_string);
+        System.out.println("Starting server with port: 8888");
         while (true)
         {	byte[] receive = new byte[1024]; // reinitiate everyt time so it wont store extra thing
         	byte[] send = new byte[1024];
@@ -41,10 +41,10 @@ class Server_UDP
         		client_IDs.put(bacon.ID, new Status(0, false, false, bacon.StartUpTime));
         	}
         	
-        	if (client_IDs.get(bacon.ID).dead)
-        	{
-        		break;
-        	}
+//        	if (client_IDs.get(bacon.ID).dead)
+//        	{
+//        		break;
+//        	}
         		
         	// look into the info of the packet to send back this UDP
         	int clientPort = receivePacket.getPort(); // get port
@@ -56,7 +56,7 @@ class Server_UDP
         	socket.send(sendPacket);
         		
         }
-        socket.close();
+        // socket.close();
    }
 }
 
