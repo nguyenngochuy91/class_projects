@@ -4,7 +4,7 @@
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include <time.h>
-
+#define UDP_PORT 8888 // port for UDP client to connect to server
 #define SIZE 1024  //Max size of buffer
 // struct BEACON
 struct BEACON
@@ -22,9 +22,8 @@ int main(int argc, char *argv[])
 
     int cSock;
     int i;
-    int PORT = atoi(argv[2]);
     char *SERVER = argv[1]; // server string, suposely 127.0.0.1 for local network
-
+    int PORT = atoi(argv[2]); // port for the TCP server to listen to
     char buffer_receive[SIZE] ; // variable to receive from server
     char buffer_send[SIZE] ; // variable to send to server
 
@@ -61,7 +60,7 @@ int main(int argc, char *argv[])
     int slen=sizeof(sin);
     memset((char *) &sin, 0, sizeof(sin)); // allocate memory
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(PORT);
+    sin.sin_port = htons(UDP_PORT);
 
     if (inet_aton(SERVER, &sin.sin_addr) == 0)
     {
