@@ -3,7 +3,40 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
+
+/* Check for local os */
+
+#if defined(_WIN32) || defined(_WIN64)
+        const char* os = "Window";
+#else
+#ifdef __linux
+        const char* os = "Linux";
+#else
+        const char* os = "Unknown";
+#endif
+#endif
+
+void GetLocalOs(char OS[16],int *valid)
+{
+	OS[16] = os;
+	valid = 1;
+}
+
+void GetLocalTime(int *time,int *valid)
+{
+	time = clock();
+	valid = 1;
+}
+
 int main(int argc, char *argv[]){
+  char OS[16];
+  int *valid;
+  GetLocalOs(OS,valid);
+  int startUpTime ;
+  GetLocalTime(startUpTime,valid);
+
+  
   int clientSocket;
   int PORT = atoi(argv[2]);
   char buffer[1024];
@@ -43,3 +76,4 @@ int main(int argc, char *argv[]){
 
   return 0;
 }
+
