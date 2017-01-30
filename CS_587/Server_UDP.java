@@ -10,6 +10,8 @@ class Server_UDP
 	    int port = 8888;
         DatagramSocket socket = new DatagramSocket(port); // initiate udp socket
         Map<Integer, Status> client_IDs = new Hashtable<Integer, Status>(); // hash table with key = client ID, value is the status
+        
+
         System.out.println("Starting server with port: 8888");
         while (true)
         {	byte[] receive = new byte[1024]; // reinitiate everyt time so it wont store extra thing
@@ -18,9 +20,19 @@ class Server_UDP
         	socket.receive(receivePacket); // receive packet from the port
         	String mess = new String(receivePacket.getData());
         	System.out.println("Server has receive this mess:" + mess);
+        	// look into the info of the packet to send back this UDP
+        	int clientPort = receivePacket.getPort(); // get port
+        	InetAddress IP = receivePacket.getAddress(); // get IP address
+        	String return_mess = "We have receive from this port "+ Integer.toString(clientPort);
+        	send = return_mess.getBytes(); // convert to byte to send
+        	DatagramPacket sendPacket =
+                    new DatagramPacket(send, send.length, IP, clientPort);
+        	socket.send(sendPacket);
+        	
         	// parse this mess into BEACON structure
         	String[] parts = mess.split(",");
         	int cmdPort = Integer.parseInt(parts[6].trim()); // have to trim
+        	
         	int[] IP_address = new int[4];
         	for (int i=0;i<4;i++)
         	{
@@ -32,7 +44,7 @@ class Server_UDP
         	// check if the ID is already in the HashTable
         	if (client_IDs.containsKey(bacon.ID))
         	{
-        		Status New_Client_Status = new Status(1, false, false, bacon.StartUpTime);
+        		Status New_Client_Status = new Status(0, false, false, bacon.StartUpTime);
         		client_IDs.put(bacon.ID,client_IDs.get(bacon.ID).update_status(New_Client_Status));
         	}
         	else
@@ -46,14 +58,7 @@ class Server_UDP
 //        		break;
 //        	}
         		
-        	// look into the info of the packet to send back this UDP
-        	int clientPort = receivePacket.getPort(); // get port
-        	InetAddress IP = receivePacket.getAddress(); // get IP address
-        	String return_mess = "We have receive your "+mess;
-        	send = return_mess.getBytes(); // convert to byte to send
-        	DatagramPacket sendPacket =
-                    new DatagramPacket(send, send.length, IP, clientPort);
-        	socket.send(sendPacket);
+
         		
         }
         // socket.close();
