@@ -1,84 +1,45 @@
 #include <stdio.h>
-#include <pthread.h>
-#include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <string.h>
-#include <sys/socket.h> // socket library
-#include <netinet/in.h> // netinet library
-#include <time.h>  // to time
+#include <stdlib.h>
+int main(int argc, char *argv[]){
+  int clientSocket;
+  int PORT = atoi(argv[2]);
+  char buffer[1024];
+  struct sockaddr_in serverAddr;
+  socklen_t addr_size;
 
-#define SIZE 1024  //Max size of buffer
-int main(int argc, char *argv[])
-{
+  /*---- Create the socket. The three arguments are: ----*/
+  /* 1) Internet domain 2) Stream socket 3) Default protocol (TCP in this case) */
+  clientSocket = socket(PF_INET, SOCK_STREAM, 0);
 
-    int cSock;
-    int PORT = atoi(argv[2]);
-    char *SERVER = argv[1]; // server string, suposely 127.0.0.1 for local network
+  /*---- Configure settings of the server address struct ----*/
+  /* Address family = Internet */
+  serverAddr.sin_family = AF_INET;
+  /* Set port number, using htons function to use proper byte order */
+  serverAddr.sin_port = htons(PORT);
+  /* Set IP address to localhost */
+  serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  /* Set all bits of the padding field to 0 */
+  memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 
-    char buffer_receive[SIZE] ; // variable to receive from server
-    char buffer_send[SIZE] ; // variable to send to server
+  /*---- Connect the socket to the server using the address struct ----*/
+  addr_size = sizeof serverAddr;
+  connect(clientSocket, (struct sockaddr *) &serverAddr, addr_size);
 
-    // intializing the socket
-    if ((cSock = socket(AF_INET, SOCK_STREAM, 0)) <0)
-    {
-    	perror("socket");
-    	printf("Failed to create socket \n");
-    	abort();
-    }
-    // variable for address
-    struct sockaddr_in sin;
-	int slen=sizeof(sin);
-	memset((char *) &sin, 0, sizeof(sin)); // allocate memory
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(PORT);
+  /*---- Send the message to the server into the buffer ----*/
+  printf("Please enter a message for server: ");
+  memset(buffer,'\0', 1024);
+  fgets(buffer, 1024, stdin);
+  send(clientSocket, buffer,1024,0);
 
-	if (inet_aton(SERVER, &sin.sin_addr) == 0)
-	{
-		printf("Fail to get to server\n");
-		abort();
-	}
+  /*---- Read the message from the server into the buffer ----*/
+  memset(buffer,'\0', 1024);
+  recv(clientSocket, buffer, 1024, 0);
 
-	// send packet
-	int send_packets(char *buffer_send, int buffer_len)
-	{
-		int sent_bytes = send(cSock, buffer_send,buffer_len,0);
-		printf("message send: %s",buffer_send);
-		if (sent_bytes <0)
-		{
-			printf("cannot send.\n");
-		}
-		return 0;
-	}
+  /*---- Print the received message ----*/
+  printf("Data received: %s",buffer);
 
-	// receive packet
-	int receive_packets(char *buffer_receive, int bytes)
-	{
-		int received =0;
-		int total =0 ;
-		while (bytes !=0)
-		{
-			received = recv(cSock, &buffer_receive[total], bytes, 0);
-			if (received == -1) return -1;
-			if (received ==0) return total;
-			bytes = bytes - received;
-			total = total + received;
-		}
-		return total;
-	}
-
-	// talk to the server
-	while (1)
-	{
-		printf("Please enter a message for server: ");
-		memset(buffer_send,'\0', SIZE);
-		fgets(buffer_send, SIZE, stdin); // get the message to send
-		// send message
-		int send_mess = send_packets(buffer_send, sizeof(buffer_send));
-
-		// receive message
-		memset(buffer_receive,'\0', SIZE);
-		int receive_mess = receive_packets(buffer_receive, SIZE);
-		printf("capitalize string from server: %s", buffer_receive);
-	}
-	close(cSock);
-	return 0;
+  return 0;
 }
