@@ -1,3 +1,7 @@
+// command to run
+// javac -cp . lab1/NaiveBayes.java 
+// java lab1/NaiveBayes ../20newsgroups/vocabulary.txt ../20newsgroups/map.csv ../20newsgroups/train_label.csv ../20newsgroups/train_data.csv ../20newsgroups/test_label.csv ../20newsgroups/test_data.csv
+
 package lab1;
 
 import java.util.ArrayList;
@@ -34,7 +38,12 @@ public class NaiveBayes {
 		// train data
 		List<HashMap<Integer,Integer>> dictionaryList_train = new ArrayList<HashMap<Integer,Integer>>();
 		dictionaryList_train = prior_probability(train_label);
+		
 		prior_train          = dictionaryList_train.get(0);
+		for (int i : prior_train.keySet())
+		{
+			System.out.println("Class of "+ String.valueOf(i)+" = "+String.valueOf(prior_train.get(i)));
+		}
 		doc_to_news_train    = dictionaryList_train.get(1);
 		news_to_word_train   = calculate_words(doc_to_news_train, train_data);
 		// from the above info, calculate the class prior
