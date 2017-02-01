@@ -16,10 +16,11 @@ public class NaiveBayes {
 	public static void main(String[] args) throws FileNotFoundException {
 		// TODO Auto-generated method stub
 		String vocabulary  = args[0];
-		String train_label = args[1];
-		String train_data  = args[2];
-		String test_label  = args[3];
-		String test_data   = args[4];
+		String map_csv     = args[1];
+		String train_label = args[2];
+		String train_data  = args[3];
+		String test_label  = args[4];
+		String test_data   = args[5];
 		// train variables
 		HashMap<Integer, Integer> prior_train          = new HashMap<Integer, Integer>();
 		HashMap<Integer, Integer> doc_to_news_train    = new HashMap<Integer, Integer>();
@@ -29,34 +30,49 @@ public class NaiveBayes {
 		HashMap<Integer, Integer> doc_to_news_test     = new HashMap<Integer, Integer>();
 		HashMap<Integer, Word> news_to_word_test	   = new HashMap<Integer, Word>();
 		
+		/////////////////////////////////////////////////////////////////////////////////////
+		// train data
 		List<HashMap<Integer,Integer>> dictionaryList_train = new ArrayList<HashMap<Integer,Integer>>();
 		dictionaryList_train = prior_probability(train_label);
 		prior_train          = dictionaryList_train.get(0);
 		doc_to_news_train    = dictionaryList_train.get(1);
 		news_to_word_train   = calculate_words(doc_to_news_train, train_data);
 		// from the above info, calculate the class prior
-		HashMap<Integer, Float> P_prior_train =  new HashMap<Integer, Float>();
+		HashMap<Integer, Float> P_prior_train = new HashMap<Integer, Float>();
 		P_prior_train 					      = calculate_prior(prior_train,num_train_data);
-		
+		// testing this
+		for (int i : P_prior_train.keySet())
+		{
+			System.out.println("P(Omega = "+ String.valueOf(i)+") = "+String.valueOf(P_prior_train.get(i)));
+		}
 		//calculate the MLE for each word in each newsgroup
-		HashMap<Integer, Float> MLE_prior_train =  new HashMap<Integer, Float>();
+		HashMap<Integer, List<Float>> MLE_prior_train = new HashMap<Integer, List<Float>>();
+		MLE_prior_train  							  = calculate_MLE(news_to_word_train);
 		//calculate the BE for each word in each newsgroup
-		HashMap<Integer, Float> BE_prior_train =  new HashMap<Integer, Float>();
+		HashMap<Integer, List<Float>> BE_prior_train = new HashMap<Integer, List<Float>>();
+		BE_prior_train								 = calculate_BE(news_to_word_train);
 		
+		
+		/////////////////////////////////////////////////////////////////////////////////////
+		// test data
 		// initiate our news_to_word
-		List<HashMap<Integer,Integer>> dictionaryList_test = new ArrayList<HashMap<Integer,Integer>>();
-		dictionaryList_test  = prior_probability(test_label);
-		prior_test 			 = dictionaryList_test.get(0);
-		doc_to_news_test	 = dictionaryList_test.get(1);
-		news_to_word_test   = calculate_words(doc_to_news_test, test_data);
-		// from the above info, calculate the class prior
-		HashMap<Integer, Float> P_prior_test =  new HashMap<Integer, Float>();
-		P_prior_test 					     = calculate_prior(prior_train,num_train_data);
+//		List<HashMap<Integer,Integer>> dictionaryList_test = new ArrayList<HashMap<Integer,Integer>>();
+//		dictionaryList_test  = prior_probability(test_label);
+//		prior_test 			 = dictionaryList_test.get(0);
+//		doc_to_news_test	 = dictionaryList_test.get(1);
+//		news_to_word_test    = calculate_words(doc_to_news_test, test_data);
+//		// from the above info, calculate the class prior
+//		HashMap<Integer, Float> P_prior_test = new HashMap<Integer, Float>();
+//		P_prior_test 					     = calculate_prior(prior_train,num_train_data);
+//		
+//		//calculate the MLE for each word in each newsgroup
+//		HashMap<Integer, List<Float>> MLE_prior_test = new HashMap<Integer, List<Float>>();
+//		MLE_prior_test  							 = calculate_MLE(news_to_word_test);
+//		//calculate the BE for each word in each newsgroup
+//		HashMap<Integer, List<Float>> BE_prior_test = new HashMap<Integer, List<Float>>();
+//		BE_prior_test  							    = calculate_MLE(news_to_word_test);
 		
-		//calculate the MLE for each word in each newsgroup
-		HashMap<Integer, Float> MLE_prior_test =  new HashMap<Integer, Float>();
-		//calculate the BE for each word in each newsgroup
-		HashMap<Integer, Float> BE_prior_test =  new HashMap<Integer, Float>();
+		
 	}
 	// function that take in label.csv 
 	// return an array of 2 
@@ -131,23 +147,41 @@ public class NaiveBayes {
 	}
 	
 	// calculate the MLE probability
-	public static HashMap<Integer, Float> calculate_MLE(HashMap<Integer, Word> news_to_word_test)
+	public static HashMap<Integer, List<Float>> calculate_MLE(HashMap<Integer, Word> news_to_word)
 	{
-		HashMap<Integer, Float> MLE_prior =  new HashMap<Integer, Float>();
-		for (Integer new_id: prior.keySet())
+		HashMap<Integer, List<Float>> MLE_prior =  new HashMap<Integer, List<Float>>();
+		for (Integer new_id: news_to_word.keySet())
 		{
-			MLE_prior.put(new_id, (float) (prior.get(new_id)/num_data));
+			List<Float> MLE = new ArrayList<Float>(); // store MLE for each word for each new_id
+			Word word = news_to_word.get(new_id); // get the word object
+			// get the total number of words in all document in class new_id
+			Integer n = word.total_count;
+			// iterate through the word_id in the word_dic
+			for (Integer word_id: word.word_dic.keySet())
+			{
+				MLE.add((float) word.word_dic.get(word_id)/n);
+			}
+			MLE_prior.put(new_id, MLE);
 		}
 		return MLE_prior;
 	}
 	
 	// calculate the BE probability
-	public static HashMap<Integer, Float> calculate_BE(HashMap<Integer, Word> news_to_word_test)
+	public static HashMap<Integer, List<Float>> calculate_BE(HashMap<Integer, Word> news_to_word)
 	{
-		HashMap<Integer, Float> BE_prior =  new HashMap<Integer, Float>();
-		for (Integer new_id: prior.keySet())
+		HashMap<Integer, List<Float>> BE_prior =  new HashMap<Integer, List<Float>>();
+		for (Integer new_id: news_to_word.keySet())
 		{
-			BE_prior.put(new_id, (float) (prior.get(new_id)/num_data));
+			List<Float> BE = new ArrayList<Float>(); // store MLE for each word for each new_id
+			Word word = news_to_word.get(new_id); // get the word object
+			// get the total number of words in all document in class new_id
+			Integer n = word.total_count;
+			// iterate through the word_id in the word_dic
+			for (Integer word_id: word.word_dic.keySet())
+			{
+				BE.add((float) (word.word_dic.get(word_id)+1)/(n+num_vocabulary));
+			}
+			BE_prior.put(new_id, BE);
 		}
 		return BE_prior;
 	}
@@ -173,4 +207,3 @@ class Word{
 		total_count += new_count;
 	}
 }
-
