@@ -5,6 +5,7 @@
 package lab1;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.io.File;
@@ -17,7 +18,7 @@ public class NaiveBayes {
 	static final Integer num_test_data  = 7505;
 	static final Integer num_vocabulary = 61188;
 
-	public static void main(String[] args) throws FileNotFoundException {
+	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		// TODO Auto-generated method stub
 		String vocabulary  = args[0];
 		String map_csv     = args[1];
@@ -34,18 +35,18 @@ public class NaiveBayes {
 		HashMap<Integer, Integer> doc_to_news_test     = new HashMap<Integer, Integer>();
 		HashMap<Integer, Word> news_to_word_test	   = new HashMap<Integer, Word>();
 		
+		// 2.1 Learn naive bayes model
+		
 		/////////////////////////////////////////////////////////////////////////////////////
 		// train data
 		List<HashMap<Integer,Integer>> dictionaryList_train = new ArrayList<HashMap<Integer,Integer>>();
 		dictionaryList_train = prior_probability(train_label);
 		
 		prior_train          = dictionaryList_train.get(0);
-		for (int i : prior_train.keySet())
-		{
-			System.out.println("Class of "+ String.valueOf(i)+" = "+String.valueOf(prior_train.get(i)));
-		}
 		doc_to_news_train    = dictionaryList_train.get(1);
+		
 		news_to_word_train   = calculate_words(doc_to_news_train, train_data);
+		
 		// from the above info, calculate the class prior
 		HashMap<Integer, Float> P_prior_train = new HashMap<Integer, Float>();
 		P_prior_train 					      = calculate_prior(prior_train,num_train_data);
@@ -57,6 +58,7 @@ public class NaiveBayes {
 		//calculate the MLE for each word in each newsgroup
 		HashMap<Integer, List<Float>> MLE_prior_train = new HashMap<Integer, List<Float>>();
 		MLE_prior_train  							  = calculate_MLE(news_to_word_train);
+		
 		//calculate the BE for each word in each newsgroup
 		HashMap<Integer, List<Float>> BE_prior_train = new HashMap<Integer, List<Float>>();
 		BE_prior_train								 = calculate_BE(news_to_word_train);
@@ -149,8 +151,8 @@ public class NaiveBayes {
 	{
 		HashMap<Integer, Float> P_prior =  new HashMap<Integer, Float>();
 		for (Integer new_id: prior.keySet())
-		{
-			P_prior.put(new_id, (float) (prior.get(new_id)/num_data));
+		{		
+			P_prior.put(new_id, (float) prior.get(new_id)/num_data);
 		}
 		return P_prior;
 	}
