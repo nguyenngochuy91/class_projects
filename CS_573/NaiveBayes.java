@@ -116,7 +116,8 @@ public class NaiveBayes {
 		System.out.println("Class accuracy:");
 		for (int news_id: new_to_doc_train.keySet())
 		{
-			int size 				  = new_to_doc_train.size();
+			int size 				  = new_to_doc_train.get(news_id).size();
+			// System.out.println("train size: "+Integer.toString(size));
 			int found_count 		  = 0;
 			List<Integer> nb_array    = new_to_doc_nb.get(news_id);
 			List<Integer> train_array = new_to_doc_train.get(news_id);
