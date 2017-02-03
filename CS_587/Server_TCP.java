@@ -5,23 +5,20 @@ class TCPServer
 {
    public static void main(String argv[]) throws Exception
       {
-         String clientSentence;
          String capitalizedSentence;
-         ServerSocket welcomeSocket = new ServerSocket(8888);
+         Socket socket = new Socket("127.0.0.1", 10000); // hard code for now, will receive info
+         // from Beacon
+         InetAddress my_address = socket.getInetAddress(); //address
+         System.out.print("Connecting on : "+my_address.getHostAddress()+" with hostname : "+my_address.getHostName()+"\n" );
 
-         while(true)
-         {
-            Socket connectionSocket = welcomeSocket.accept();
             byte[] send = new byte[1024];
-            BufferedReader inFromClient =
-               new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
-            clientSentence = inFromClient.readLine();
-            System.out.println("Received: " + clientSentence);
-            capitalizedSentence = clientSentence.toUpperCase() + '\n';
+            BufferedReader inFromAgent =
+               new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            DataOutputStream outToAgent = new DataOutputStream(socket.getOutputStream());
+            capitalizedSentence = "Hello friend!!! \n";
             System.out.println("Sent: " + capitalizedSentence);
             send = capitalizedSentence.getBytes();
-            outToClient.write(send);
-         }
+            outToAgent.write(send);
+         
       }
 }
