@@ -14,20 +14,12 @@ class Server_UDP
 
         System.out.println("Starting server with port: 8888");
         while (true)
-        {	byte[] receive = new byte[1024]; // reinitiate everyt time so it wont store extra thing
-        	byte[] send = new byte[1024];
+        {	byte[] receive = new byte[1024]; // reinitiate every time so it wont store extra thing
         	DatagramPacket receivePacket = new DatagramPacket(receive, receive.length); // initialize empty packet
         	socket.receive(receivePacket); // receive packet from the port
         	String mess = new String(receivePacket.getData());
         	System.out.println("Server has receive this mess:" + mess);
         	// look into the info of the packet to send back this UDP
-        	int clientPort = receivePacket.getPort(); // get port
-        	InetAddress IP = receivePacket.getAddress(); // get IP address
-        	String return_mess = "We have receive from this port "+ Integer.toString(clientPort);
-        	send = return_mess.getBytes(); // convert to byte to send
-        	DatagramPacket sendPacket =
-                    new DatagramPacket(send, send.length, IP, clientPort);
-        	socket.send(sendPacket);
         	
         	// parse this mess into BEACON structure
         	String[] parts = mess.split(",");
@@ -50,7 +42,9 @@ class Server_UDP
         	else
         	{
         		// put my beautiful bacon into the hashtable
+        		System.out.println("New client is spawn with ID:"+String.valueOf(bacon.ID)+" at time:"+String.valueOf(bacon.StartUpTime));
         		client_IDs.put(bacon.ID, new Status(0, false, false, bacon.StartUpTime));
+        		new Thread(new ClientAgent(cmdPort)).start();
         	}
         	
 //        	if (client_IDs.get(bacon.ID).dead)
@@ -65,6 +59,60 @@ class Server_UDP
    }
 }
 
+class ClientAgent implements Runnable {
+	Socket TCP_socket = null;
+	int tcp_port;
+	public ClientAgent(int port) 
+	{
+		tcp_port = port; // set the port that agent listen to
+
+	}
+	public void run()
+		{	
+		try 
+		{
+			TCP_socket = new Socket("127.0.0.1", tcp_port);
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		InetAddress my_address = TCP_socket.getInetAddress(); //address
+        System.out.print("Connecting on : "+my_address.getHostAddress()+" with hostname : "+my_address.getHostName()+"\n" );
+        byte[] send = new byte[1024];
+        try 
+        {
+			BufferedReader inFromAgent =
+			   new BufferedReader(new InputStreamReader(TCP_socket.getInputStream()));
+		} 
+        catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        DataOutputStream outToAgent = null;
+		try 
+		{
+			outToAgent = new DataOutputStream(TCP_socket.getOutputStream());
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        String message = "Hello friend!!! \n";
+        System.out.println("Sent: " + message);
+        send = message.getBytes();
+        try 
+        {
+			outToAgent.write(send);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // helper classes
