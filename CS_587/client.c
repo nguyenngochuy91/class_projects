@@ -11,6 +11,7 @@
 // struct BEACON
 
 pthread_t beacon_sender;
+
 struct BEACON
 {
 	int	ID;  	     // randomly generated during startup
@@ -18,53 +19,14 @@ struct BEACON
 	char IP[4];       // the IP address of this client
 	int	CmdPort;     // the client listens to this port for manager cmd
 };
-
-void cmdAgent()
-{
-	char buffer[SIZE];
-    int server_sockfd, client_sockfd;
-    int server_len, client_len;
-    struct sockaddr_in server_address;
-    struct sockaddr_in client_address;
-    int current_port = 1024
-
-    server_sockfd = socket( AF_INET, SOCK_STREAM, 0 );
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr( "127.0.0.1" );
-    server_address.sin_port = htons( current_port );
-
-    server_len = sizeof( server_address );
-
-        while ( bind( server_sockfd, ( struct sockaddr *)&server_address, server_len ) != 0 )
-        {	current_port ++;
-        	server_address.sin_port = htons( current_port );
-        }
-
-    listen( server_sockfd, 5 );
-
-
-        printf( "Agent wait...\n" );
-
-        client_len = sizeof( client_address );
-        client_sockfd = accept( server_sockfd, ( struct sockaddr *)&client_address, &client_len );
-		printf( "Manager connected \n" );
-		memset(buffer,'\0', 1024);
-		recv(client_sockfd, buffer, 1024, 0);
-
-		/*---- Print the received message ----*/
-		printf("Data received: %s",buffer);
-        close( client_sockfd );
-
-}
-
-
-void BeaconSender()
+void* BeaconSender(void *arg)
 {
 
     int cSock;
     int i;
     char *SERVER = "127.0.0.1"; // server string, suposely 127.0.0.1 for local network
-    int PORT = 8888; // port for the TCP server to listen to
+    int *correct_port_ptr = (int*) arg;
+    int PORT = *correct_port_ptr; // port for the TCP server to listen to
     char buffer_receive[SIZE] ; // variable to receive from server
     char buffer_send[SIZE] ; // variable to send to server
 
@@ -122,27 +84,70 @@ void BeaconSender()
         	printf("Fail to send message\n");
         	abort();
         }
-
         // waiting for the server to return a reply , expect the same thing back
-        memset(buffer_receive,'\0', SIZE);
-        // a blocking call, wait until receive the data
-        if (recvfrom(cSock, buffer_receive, SIZE, 0, (struct sockaddr *) &sin, &slen) == -1)
-        {
-        	printf("Fail to receive message\n");
-        	abort();
-        }
-
-        puts(buffer_receive); // display without caring too much about the type
+//        memset(buffer_receive,'\0', SIZE);
+//        // a blocking call, wait until receive the data
+//        if (recvfrom(cSock, buffer_receive, SIZE, 0, (struct sockaddr *) &sin, &slen) == -1)
+//        {
+//        	printf("Fail to receive message\n");
+//        	abort();
+//        }
+//
+//        puts(buffer_receive); // display without caring too much about the type
         sleep(10);
     }
 
     close(cSock); // close the socket when done
 }
 
+void cmdAgent()
+{
+	char buffer[SIZE];
+    int server_sockfd, client_sockfd;
+    int server_len, client_len;
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+    int current_port = 1024;
+
+    server_sockfd = socket( AF_INET, SOCK_STREAM, 0 );
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = inet_addr( "127.0.0.1" );
+    server_address.sin_port = htons( current_port );
+
+    server_len = sizeof( server_address );
+
+        while ( bind( server_sockfd, ( struct sockaddr *)&server_address, server_len ) != 0 )
+        {
+        	current_port ++;
+        	server_address.sin_port = htons( current_port );
+        }
+    /* When we hit an available port, we will create a thread to beacon sender and send it*/
+    pthread_create(&beacon_sender, NULL, BeaconSender, &current_port);
+    // this whole function wont stop until the beacon_sender is done
+
+    listen( server_sockfd, 5 );
+
+
+        printf( "Agent wait...\n" );
+
+        client_len = sizeof( client_address );
+        client_sockfd = accept( server_sockfd, ( struct sockaddr *)&client_address, &client_len );
+		printf( "Manager connected \n" );
+		memset(buffer,'\0', 1024);
+		recv(client_sockfd, buffer, 1024, 0);
+
+		/*---- Print the received message ----*/
+		printf("Data received: %s",buffer);
+        close( client_sockfd );
+    pthread_join(beacon_sender,NULL);
+}
+
+
+
+
 int main()
 {	/* create thread */
 
 	cmdAgent();
-	BeaconSender();
 	return 0;
 }
