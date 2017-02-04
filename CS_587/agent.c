@@ -19,14 +19,21 @@ struct BEACON
 	char IP[4];       // the IP address of this client
 	int	CmdPort;     // the client listens to this port for manager cmd
 };
+
+struct INFO
+{
+	int id;
+	int port;
+};
 void* BeaconSender(void *arg)
 {
 
     int cSock;
     int i;
     char *SERVER = "127.0.0.1"; // server string, suposely 127.0.0.1 for local network
-    int *correct_port_ptr = (int*) arg;
-    int PORT = *correct_port_ptr; // port for the TCP server to listen to
+    struct INFO* info    = arg;
+    int PORT = (*info).port;
+    int id   = (*info).id; // id for our client
     char buffer_receive[SIZE] ; // variable to receive from server
     char buffer_send[SIZE] ; // variable to send to server
 
@@ -39,8 +46,8 @@ void* BeaconSender(void *arg)
     // initiate a BEACON struct
     struct BEACON bacon;
     bacon.StartUpTime = clock();
-    srand(clock()); // set the seed by the time so everytime a client pop up, its different
-    bacon.ID = rand(); // random ID
+//    srand(clock()); // set the seed by the time so everytime a client pop up, its different
+    bacon.ID = id; // random ID
     token = strtok (copy,".");
     for (i =0;i<4;i++)
     {
@@ -53,7 +60,6 @@ void* BeaconSender(void *arg)
 //    bacon.IP[2] = 0;
 //    bacon.IP[3] = 1;
     bacon.CmdPort = PORT;
-
     if ( (cSock=socket(AF_INET, SOCK_DGRAM, 0)) == -1)
     {
     	printf("Fail to create socket\n");
@@ -100,7 +106,7 @@ void* BeaconSender(void *arg)
     close(cSock); // close the socket when done
 }
 
-void cmdAgent()
+void cmdAgent(id)
 {
 	char buffer[SIZE];
     int server_sockfd, client_sockfd;
@@ -121,8 +127,13 @@ void cmdAgent()
         	current_port ++;
         	server_address.sin_port = htons( current_port );
         }
+    struct INFO info;
+    info.id = id;
+    info.port = current_port;
     /* When we hit an available port, we will create a thread to beacon sender and send it*/
-    pthread_create(&beacon_sender, NULL, BeaconSender, &current_port);
+//    printf("argument 1: %i",argument_pass[0]);
+//    printf("argument 1: %i",argument_pass[1]);
+    pthread_create(&beacon_sender, NULL, BeaconSender, &info);
     // this whole function wont stop until the beacon_sender is done
 
     listen( server_sockfd, 5 );
@@ -145,9 +156,9 @@ void cmdAgent()
 
 
 
-int main()
+int main(int argc, char *argv[])
 {	/* create thread */
-
-	cmdAgent();
+	int id = atoi(argv[1]);
+	cmdAgent(id);
 	return 0;
 }
