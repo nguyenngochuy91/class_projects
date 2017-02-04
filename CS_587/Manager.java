@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.*;
 
 
-class Server_UDP
+class Manager
 {
    public static void main(String args[]) throws Exception
    {	
@@ -81,15 +81,8 @@ class ClientAgent implements Runnable {
 		InetAddress my_address = TCP_socket.getInetAddress(); //address
         System.out.print("Connecting on : "+my_address.getHostAddress()+" with hostname : "+my_address.getHostName()+"\n" );
         byte[] send = new byte[1024];
-        try 
-        {
-			BufferedReader inFromAgent =
-			   new BufferedReader(new InputStreamReader(TCP_socket.getInputStream()));
-		} 
-        catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        byte[] receive = new byte[1024];
+        String sentence;
         DataOutputStream outToAgent = null;
 		try 
 		{
@@ -100,13 +93,24 @@ class ClientAgent implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-        String message = "Hello friend!!! \n";
-        System.out.println("Sent: " + message);
+        String message = "Give me your OSSSSSSS and system time!!! \n";
+//        System.out.println("Sent: " + message);
         send = message.getBytes();
         try 
         {
 			outToAgent.write(send);
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        try 
+        {
+			BufferedReader inFromAgent =
+			   new BufferedReader(new InputStreamReader(TCP_socket.getInputStream()));
+			sentence = inFromAgent.readLine();
+			System.out.println(sentence);
+		} 
+        catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
