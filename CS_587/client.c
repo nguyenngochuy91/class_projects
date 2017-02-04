@@ -6,7 +6,11 @@
 #include <time.h>
 #define UDP_PORT 8888 // port for UDP client to connect to server
 #define SIZE 1024  //Max size of buffer
+#define LOWEST_PORT 1024
+#define HIGHEST_PORT 65535
 // struct BEACON
+
+pthread_t beacon_sender;
 struct BEACON
 {
 	int	ID;  	     // randomly generated during startup
@@ -22,19 +26,18 @@ void cmdAgent()
     int server_len, client_len;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
-
+    int current_port = 1024
 
     server_sockfd = socket( AF_INET, SOCK_STREAM, 0 );
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr( "127.0.0.1" );
-    server_address.sin_port = htons( 10000 );
+    server_address.sin_port = htons( current_port );
 
     server_len = sizeof( server_address );
 
-        if( bind( server_sockfd, ( struct sockaddr *)&server_address, server_len ) != 0 )
-        {
-                perror("The port has been used ");
-                exit( 1 );
+        while ( bind( server_sockfd, ( struct sockaddr *)&server_address, server_len ) != 0 )
+        {	current_port ++;
+        	server_address.sin_port = htons( current_port );
         }
 
     listen( server_sockfd, 5 );
@@ -137,7 +140,8 @@ void BeaconSender()
 }
 
 int main()
-{
+{	/* create thread */
+
 	cmdAgent();
 	BeaconSender();
 	return 0;
