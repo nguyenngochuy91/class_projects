@@ -8,6 +8,35 @@
 #define SIZE 1024  //Max size of buffer
 #define LOWEST_PORT 1024
 #define HIGHEST_PORT 65535
+
+// for os info request
+#include <stdio.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+        const char* os = "Window";
+#else
+#ifdef __linux
+        const char* os = "Linux";
+#else
+        const char* os = "Mac";
+#endif
+#endif
+// global variable
+char Operating_System[16];
+int *execution_time;
+// get os function
+
+
+void GetLocalOS(char OS[16], int *valid)
+{
+	strcpy(OS,os);
+}
+// get time function
+void GetLocalTime(int *system_time, int *valid)
+{
+	system_time = execution_time;
+}
+
 // struct BEACON
 
 pthread_t beacon_sender;
@@ -24,6 +53,7 @@ struct INFO
 {
 	int id;
 	int port;
+	int time;
 };
 void* BeaconSender(void *arg)
 {
@@ -45,7 +75,7 @@ void* BeaconSender(void *arg)
 
     // initiate a BEACON struct
     struct BEACON bacon;
-    bacon.StartUpTime = clock();
+    bacon.StartUpTime = (*info).time;
 //    srand(clock()); // set the seed by the time so everytime a client pop up, its different
     bacon.ID = id; // random ID
     token = strtok (copy,".");
@@ -130,9 +160,9 @@ void cmdAgent(id)
     struct INFO info;
     info.id = id;
     info.port = current_port;
+    info.time = clock();
     /* When we hit an available port, we will create a thread to beacon sender and send it*/
-//    printf("argument 1: %i",argument_pass[0]);
-//    printf("argument 1: %i",argument_pass[1]);
+
     pthread_create(&beacon_sender, NULL, BeaconSender, &info);
     // this whole function wont stop until the beacon_sender is done
 
@@ -149,6 +179,14 @@ void cmdAgent(id)
 
 		/*---- Print the received message ----*/
 		printf("Data received: %s",buffer);
+
+        /* get the local os and time to send */
+        memset(buffer,'\0', 1024);
+        GetLocalOS(Operating_System,(int*)1);
+
+//        GetLocalTime(local_time,(int*)1);
+        sprintf(buffer,"OS: %s, System clock: %i",Operating_System,info.time);
+        send(client_sockfd, buffer,1024,0);
         close( client_sockfd );
     pthread_join(beacon_sender,NULL);
 }
