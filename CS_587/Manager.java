@@ -1,6 +1,9 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+
 
 class Manager
 {
@@ -13,13 +16,97 @@ class Manager
 
         System.out.println("Starting server with port: 8888");
         Thread my_beacon_listener = new Thread(new BeaconListener(socket, client_IDs));
+        Thread my_agent_monitor   = new Thread(new AgentMonitor(client_IDs, 10));
         my_beacon_listener.start();
+        my_agent_monitor.start();  
         my_beacon_listener.join();
+        my_agent_monitor.join();
         
    }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // thread classes
+// Agent Monitor Thread 
+class AgentMonitor implements Runnable{
+	Map<Integer, Status> client_IDs;
+	int waiting_time;
+	public AgentMonitor(Map<Integer, Status> array_client_IDs,int Wait)
+	{
+		client_IDs = array_client_IDs;
+		waiting_time = Wait; // wait 10 secs
+	}
+	public void run()
+	{
+		while (true) // keep looping through client_IDs every 10 secs and update status
+		{
+			// get the current time to compare
+			long time = System.currentTimeMillis()/1000;
+			// going through the array_client_IDs
+			synchronized (client_IDs) 
+			{
+				for (int client_ID: client_IDs.keySet())
+				{
+					Status client_ID_Status = client_IDs.get(client_ID);
+					if (!client_ID_Status.is_dead()) // if the client is alive from the last time
+					{
+						// check if the number of receive is less than 2 from expected
+						int value =(int) (time - client_ID_Status.Time_stamp)/waiting_time;
+						if (value - client_ID_Status.Received_Beacon >=2)
+						{	
+							System.out.println("expected number of beacon:"+Integer.toString(value));
+							System.out.println("received number of beacon:"+Integer.toString(client_ID_Status.Received_Beacon));
+							// it means we miss 2 beacon
+							client_ID_Status.dead = true;
+							System.out.println("Client ID "+Integer.toString(client_ID)+" just died");
+						}
+						else 
+						{
+							// check if the time start up is differen
+							// if it is, means that the client is terminated then re run immediately
+							if (client_ID_Status.previous_startup_time!= client_ID_Status.new_start_up_time)
+							{
+								client_ID_Status.restarted 			   = true;
+								// have to set previous start up equal to new start up
+								client_ID_Status.previous_startup_time = client_ID_Status.new_start_up_time;
+								// have to reset timestamp
+								client_ID_Status.Time_stamp 	       = time;
+								client_ID_Status.Received_Beacon	   = 1;
+								System.out.println("Client ID "+Integer.toString(client_ID)+" just restarted ");
+							}
+						}
+					}
+					else
+					{
+						if (client_ID_Status.previous_startup_time!= client_ID_Status.new_start_up_time)
+						{
+							client_ID_Status.restarted 			   = true;
+							client_ID_Status.dead  				   = false; // it is not dead
+							// have to set previous start up equal to new start up
+							client_ID_Status.previous_startup_time = client_ID_Status.new_start_up_time;
+							// have to reset timestamp
+							client_ID_Status.Time_stamp 	       = time;
+							client_ID_Status.Received_Beacon	   = 1;
+							System.out.println("Client ID "+Integer.toString(client_ID)+" was dead and restarted ");
+
+						}
+					}
+				}
+			}
+			// wait for the amount of waiting time
+//			try 
+//			{
+//				wait(waiting_time);
+//			} 
+//			catch (InterruptedException e) 
+//			{
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+		}
+		
+	}
+}
+
 // BeaconListener Thread
 class BeaconListener implements Runnable{
 	DatagramSocket UDP_socket = null;
@@ -31,44 +118,57 @@ class BeaconListener implements Runnable{
 	}
 	public void run() 
 	{
-		synchronized(client_IDs) // make sure our resources client_IDs is synchronized
-		{
-			while (true)
-	        {	byte[] receive = new byte[1024]; // reinitiate every time so it wont store extra thing
-	        	DatagramPacket receivePacket = new DatagramPacket(receive, receive.length); // initialize empty packet
-	        	try {
-					UDP_socket.receive(receivePacket);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} // receive packet from the port
-	        	String mess = new String(receivePacket.getData());
-	        	System.out.println("Server has receive this mess:" + mess);
-	        	// look into the info of the packet to send back this UDP
-	        	
-	        	// parse this mess into BEACON structure
-	        	String[] parts = mess.split(",");
-	        	int cmdPort = Integer.parseInt(parts[6].trim()); // have to trim
-	        	
-	        	int[] IP_address = new int[4];
-	        	for (int i=0;i<4;i++)
-	        	{
-	        		IP_address[0] = Integer.parseInt(parts[i+2]);
-	        	}
-	        	// create a BEACON object
-	        	BEACON bacon = new BEACON(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),IP_address, cmdPort);
-	        	System.out.println("Successful receiving the BEACON from client ID:"+parts[0]);
-	        	// check if the ID is already in the HashTable
+		while (true)
+        {	
+			byte[] receive = new byte[1024]; // reinitiate every time so it wont store extra thing
+        	DatagramPacket receivePacket = new DatagramPacket(receive, receive.length); // initialize empty packet
+        	try {
+				UDP_socket.receive(receivePacket);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} // receive packet from the port
+        	String mess = new String(receivePacket.getData());
+        	// System.out.println("Server has receive this mess:" + mess);
+        	// look into the info of the packet to send back this UDP
+        	
+        	// parse this mess into BEACON structure
+        	String[] parts = mess.split(",");
+        	int cmdPort = Integer.parseInt(parts[6].trim()); // have to trim
+        	
+        	int[] IP_address = new int[4];
+        	for (int i=0;i<4;i++)
+        	{
+        		IP_address[0] = Integer.parseInt(parts[i+2]);
+        	}
+        	// create a BEACON object
+        	BEACON bacon = new BEACON(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),IP_address, cmdPort);
+        	System.out.println("Successful receiving the BEACON from client ID:"+parts[0]);
+        	// check if the ID is already in the HashTable
+        	// have to syncrhonized
+        	synchronized (client_IDs) 
+				
+        	{
 	        	if (client_IDs.containsKey(bacon.ID))
 	        	{
-	        		//if is already in there,need to check whether it was dead and got revived
-	        		// TO DO
+	        		// just update the current status: number of received beacon
+	        		// and  new previous_startup_time swap with last new_start_up_time
+	        		// and  new new_start_up_time updated with bacon startuptime
+	        		Status current_status = client_IDs.get(bacon.ID);
+	        		int beacon_num = current_status.Received_Beacon+1;
+	        		client_IDs.put(bacon.ID, 
+	        				new Status(beacon_num, current_status.dead, current_status.restarted
+	        						, current_status.new_start_up_time, bacon.StartUpTime, current_status.Time_stamp,
+	        						current_status.CmdPort));
+	        		
 	        	}
 	        	else
 	        	{
 	        		// put my beautiful bacon into the hashtable
 	        		System.out.println("New client is spawn with ID:"+String.valueOf(bacon.ID)+" at time:"+String.valueOf(bacon.StartUpTime));
-	        		client_IDs.put(bacon.ID, new Status(0, false, false, bacon.StartUpTime, System.currentTimeMillis()));
+	        		long time = System.currentTimeMillis()/1000;
+	        		System.out.println("Received Beacon at system time:"+Long.toString(time));
+	        		client_IDs.put(bacon.ID, new Status(1, false, false, bacon.StartUpTime, bacon.StartUpTime, time,cmdPort));
 	        		Thread my_client_agent = new Thread(new ClientAgent(cmdPort));
 	        		my_client_agent.start();
 	        		try 
@@ -79,10 +179,11 @@ class BeaconListener implements Runnable{
 						e.printStackTrace();
 					}
 	        	}
-	              		
-	        }
+        	}
+              		
+        }
 		}
-	}
+	
 	
 }
 
@@ -166,36 +267,24 @@ class BEACON
 
 // class status to store the status of an agent
 class Status
-{	int Missed_Beacon = 0; // ranging from 0 to 2, if 2 then this agent is dead
+{	int Received_Beacon = 0; // number of received beacon until now
 	boolean dead = false; // boolean for status is dead
 	boolean restarted = false; // boolean for status restarted
-	int Time;
-	long Time_stamp;
-
-	public Status(int missed, boolean gone, boolean revived, int time,long time_stamp)
+	int previous_startup_time; // for angentMonitor to check and BEaconListener just update
+	int new_start_up_time;
+	long Time_stamp; // use this and a local time to calculated the expected number of beacon
+	int CmdPort;
+	public Status(int received, boolean gone, boolean revived, int previous, int current ,long time_stamp, int udp_port)
 		{
-			Missed_Beacon = missed;
-			dead = gone;
+			Received_Beacon 	  = received;
+			dead 				  = gone;
 			restarted = revived;
-			Time = time;
-			Time_stamp = time_stamp;
+			previous_startup_time = previous;
+			new_start_up_time     = current;
+			Time_stamp 			  = time_stamp;
+			CmdPort 			  = udp_port;
 		}
 	
-	public Status update_status(Status new_status)
-	{
-		// update missed beacon
-		Missed_Beacon += new_status.Missed_Beacon;
-		if (Missed_Beacon >= 2)
-		{
-			dead = true; 
-		}
-		if (Time != new_status.Time)
-		{
-			restarted = true; // update restarted
-		}
-		Time = new_status.Time; // update new Time
-		return new Status(Missed_Beacon,dead,restarted,Time, Time_stamp);
-	}
 	
 	public boolean is_dead()
 	{
