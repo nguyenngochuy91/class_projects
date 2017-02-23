@@ -79,10 +79,25 @@ void cmdAgent(id)
 		recv(client_sockfd, header, 104, 0); // receive from the manager 104 bytes, store into header
 		// need to check the function name
 		/*---- Print the received message ----*/
-		printf("Header received: %s",header);
 
-//		/*---- Print the received message ----*/
-//		printf("Data received: %s",buffer);
+		char function_name[100];
+		char parameter_lenth[4];
+		strncpy(function_name,header,100); // copy the first 100 byte
+		strncpy(parameter_lenth,header+100,4); // copy the next 4 bytes
+		printf("Function name received: %s \n",function_name);
+
+		int length = atoi(parameter_length);
+		// buffer to store parameters
+		char buf[length];
+		memset(buf,'\0', length);
+		recv(client_sockfd, buf, length, 0); // receive from the manager length bytes, store into buf
+
+		// Execute the command
+		switch(function_name)
+		{
+		case "GetLocalTime":
+			ds = malloc(sizeof());
+		}
 //
 //        /* get the local os and time to send */
 //        memset(buffer,'\0', 1024);
