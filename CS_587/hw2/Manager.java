@@ -12,8 +12,6 @@ public class Manager {
 		// TODO Auto-generated method stub
 		// testing GetLocalTime 
 		GetLocalTime my_obj_1 = new GetLocalTime();
-		System.out.println("valid:"+my_obj_1.valid);
-		System.out.println("time:"+my_obj_1.time);
 		my_obj_1.valid.setValue(0);
 		my_obj_1.execute("127.0.0.1", 8888);
 		int time = my_obj_1.time.getValue();
@@ -39,8 +37,9 @@ class GetLocalTime
 	// helper function to allocate parameter , function id, parameter length into a given buf
 	public void allocate(byte[] buf,int length)
 	{
-		// create a binary buffer
-		byte[] length_to_byte = BigInteger.valueOf(length).toByteArray();
+		// create a binary buffer, convert the length into a string 
+		byte[] length_to_byte = Integer.toString(length).getBytes(Charset.forName("UTF-8"));
+		
 		// make a buf of this size
 		// marshall parameter into buffer
 		// name of our function
@@ -52,9 +51,10 @@ class GetLocalTime
 			buf[i] = function_name_to_byte[i];
 		}
 		// assign the length of cmdbuf into our buf 
-		for (int i = 100; i<length_to_byte.length;i++) // why here is .length but not .length() 
+		
+		for (int i = 100; i<length_to_byte.length+100;i++) // why here is .length but not .length() 
 		{
-			buf[i] = length_to_byte[i];
+			buf[i] = length_to_byte[i-100];
 		}
 		// offset that accounts for function name length and parameter length
 		int offset     = 104; 
@@ -62,17 +62,18 @@ class GetLocalTime
 		byte[] time_byte  = time.toByte();
 		for (int i = offset; i<time.getSize();i++) // why here is .length but not .length() 
 		{
-			buf[i] = time_byte[i];
+			buf[i] = time_byte[i-offset];
 		}
 		byte[] valid_byte = valid.toByte();
 		offset+= time.getSize();
 		for (int i = offset; i<valid.getSize();i++) // why here is .length but not .length() 
 		{
-			buf[i] = valid_byte[i];
+			buf[i] = valid_byte[i-offset];
 		}
 	}
 	public int execute(String IP, int port) {
 		int parameter_length = time.getSize() + valid.getSize();
+//		System.out.println("parameter_length:"+parameter_length);
 		byte[] buf = new byte[100+4+parameter_length];
 		allocate(buf,parameter_length);
 		
@@ -263,26 +264,26 @@ class GetLocalOS
 // class c_int
 class c_int
 {
-    byte[] buf = new byte[4]; // little endian
+    static byte[] buf = new byte[4]; // little endian
     
-    public int getSize()
+    public static int getSize()
     {
     	return buf.length;
     }
-    public int getValue()
+    public static int getValue()
     {
     	return new BigInteger(buf).intValue(); // need to remember
     }
-    public void setValue(byte[] buf)
+    public static void setValue(byte[] new_buf)
     {
-    	this.buf = buf;
+    	buf = new_buf;
     }
-    public void setValue(int v)
+    public static void setValue(int v)
     {
     	BigInteger bigInt = BigInteger.valueOf(v);
     	buf 			  = bigInt.toByteArray();
     }
-    public byte[] toByte()
+    public static byte[] toByte()
     {
     	return buf;
     }
@@ -291,29 +292,26 @@ class c_int
 //class c_char
 class c_char
 {
-    byte[] buf = new byte[1]; // little endian
-    public int getSize()
+    static byte[] buf = new byte[1]; // little endian
+    public static int getSize()
     {
-    	System.out.println("295");
-    	System.out.println(buf.length);
     	return buf.length;
     }
-    public int getValue()
+    public static int getValue()
     {
     	return new BigInteger(buf).intValue(); // need to remember
     }
-    public void setValue(byte[] buf)
+    public static void setValue(byte[] new_buf)
     {
-    	this.buf = buf;
+    	buf = new_buf;
     }
-    public void setValue(int v)
+    public static void setValue(int v)
     {
     	
     	BigInteger bigInt = BigInteger.valueOf(v);
-    	System.out.println("value of v:"+v);
     	buf 			  = bigInt.toByteArray();
     }
-    public byte[] toByte()
+    public static byte[] toByte()
     {
     	return buf;
     }
@@ -322,28 +320,27 @@ class c_char
 //class c_os
 class c_os
 {
-    byte[] buf = new byte[10]; // little endian
+    static byte[] buf = new byte[10]; // little endian
     
-    public int getSize()
+    public static int getSize()
     {
     	return buf.length;
     }
-    public String getValue()
+    public static String getValue()
     {
     	return new BigInteger(buf).toString(); // need to remember
     }
-    public void setValue(byte[] buf)
+    public static void setValue(byte[] new_buf)
     {
-    	this.buf = buf;
+    	buf = new_buf;
     }
-    public void setValue(int v)
+    public static void setValue(int v)
     {
     	BigInteger bigInt = BigInteger.valueOf(v);
     	buf 			  = bigInt.toByteArray();
     }
-    public byte[] toByte()
+    public static byte[] toByte()
     {
     	return buf;
     }
 }
-
