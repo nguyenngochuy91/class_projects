@@ -24,7 +24,10 @@ typedef struct
 
 void GetLocalTime(GET_LOCAL_TIME *ds)
 {
-
+	time_t now = time(0);
+	ds->time  = &now;
+	char val[] = "1";
+	ds->valid = &val;
 }
 
 typedef struct
@@ -81,23 +84,31 @@ void cmdAgent(id)
 		/*---- Print the received message ----*/
 
 		char function_name[100];
+		char GetLocalTime_check[100] = "GetLocalTime";
 		char parameter_lenth[4];
 		strncpy(function_name,header,100); // copy the first 100 byte
 		strncpy(parameter_lenth,header+100,4); // copy the next 4 bytes
 		printf("Function name received: %s \n",function_name);
 
-		int length = atoi(parameter_length);
+		int length = atoi(parameter_lenth);
 		// buffer to store parameters
 		char buf[length];
 		memset(buf,'\0', length);
 		recv(client_sockfd, buf, length, 0); // receive from the manager length bytes, store into buf
 
 		// Execute the command
-		switch(function_name)
-		{
-		case "GetLocalTime":
-			ds = malloc(sizeof());
-		}
+
+		int error = strcmp(GetLocalTime_check,function_name);
+		printf("error: %i",error);
+			printf("GetLocalTime");
+			GET_LOCAL_TIME *ds;
+			ds       = malloc(sizeof(GET_LOCAL_TIME));
+			(*ds).time  = &buf[0];
+			(*ds).valid = &buf[4];
+			GetLocalTime(&ds);
+			free(ds);
+
+
 //
 //        /* get the local os and time to send */
 //        memset(buffer,'\0', 1024);
